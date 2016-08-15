@@ -16,7 +16,7 @@
 require '../inc_0700/config_inc.php'; #provides configuration, pathing, error handling, db credentials 
  
 # SQL statement
-$sql = "select * from sm16_surveys";
+$sql = " select CONCAT(a.FirstName, ' ', a.LastName) AdminName, s.SurveyID, s.Title, s.Description, date_format(s.DateAdded, '%W %D %M %Y %H:%i') 'DateAdded' from " . PREFIX . "surveys s, " . PREFIX . "Admin a where s.AdminID=a.AdminID order by s.DateAdded desc";
 
 #Fills <title> tag. If left empty will default to $PageTitle in config_inc.php  
 $config->titleTag = 'Survey made with love & PHP in Seattle';
@@ -44,11 +44,46 @@ get_header(); #defaults to theme header or header_inc.php
 ?>
 <h3 align="center">Surveys</h3>
 
-<p>This page, along with <b>survey_view.php</b>, demonstrate a List/View web application.</p>
-<p>It was built on the mysql shared web application page, <b>demo_shared.php</b></p>
-<p>This page is the entry point of the application, meaning this page gets a link on your web site.  Since the current subject is muffins, we could name the link something clever like <a href="<?php echo VIRTUAL_PATH; ?>index.php">Muffins</a></p>
-<p>Use <b>index.php</b> and <b>survey_view.php</b> as a starting point for building your own List/View web application!</p> 
 <?php
+
+$result = mysqli_query(IDB::conn(),$sql) or die(trigger_error(mysqli_error(IDB::conn()), E_USER_ERROR));
+
+if(mysqli_num_rows($result) > 0)
+{#records exist - process
+	
+    echo '<table class="table table-striped table-hover ">';//Opening table tag
+    echo '<tr>
+            <th>Date Created</th>
+            <th>Creator</th>
+            <th>Survey Name</th>
+            <th>Description</th>
+          </tr>';
+   
+            while($row = mysqli_fetch_assoc($result))
+            {# process each row
+                 echo '<tr>
+                            <td>' .dbOut($row['DateAdded']). '</td>
+                            <td>' .dbOut($row['AdminName']). '</td>
+                            <td> <a href="' . VIRTUAL_PATH . 'surveys/survey_view.php?id=' . (int)$row['SurveyID'] . '">' . dbOut($row['Title']) . '</a></td>
+                            <td>' .dbOut($row['Description']). '</td>
+                 
+                       </tr>';
+            }
+    
+    
+    echo '</table>';//Closing table tag
+
+}else{#no records
+    echo "<div align=center>Currently there is no survey</div>";	
+}//Clsoing if else statement
+
+@mysqli_free_result($result);
+?>
+
+<?php
+
+//--------------------------Here is the pager code-------------------------
+
 #reference images for pager
 $prev = '<img src="' . VIRTUAL_PATH . 'images/arrow_prev.gif" border="0" />';
 $next = '<img src="' . VIRTUAL_PATH . 'images/arrow_next.gif" border="0" />';
@@ -62,18 +97,19 @@ $result = mysqli_query(IDB::conn(),$sql) or die(trigger_error(mysqli_error(IDB::
 
 if(mysqli_num_rows($result) > 0)
 {#records exist - process
-	if($myPager->showTotal()==1){$itemz = "survey";}else{$itemz = "surveys";}  //deal with plural
+	
+    if($myPager->showTotal()==1){$itemz = "survey";}else{$itemz = "surveys";}  //deal with plural
     echo '<div align="center">We have ' . $myPager->showTotal() . ' ' . $itemz . '!</div>';
-	while($row = mysqli_fetch_assoc($result))
+	/*while($row = mysqli_fetch_assoc($result))
 	{# process each row
          echo '<div align="center"><a href="' . VIRTUAL_PATH . 'surveys/survey_view.php?id=' . (int)$row['SurveyID'] . '">' . dbOut($row['Title']) . '</a>';
          echo '</div>';
-	}
+	}*/
 	echo $myPager->showNAV(); # show paging nav, only if enough records	 
-}else{#no records
-    echo "<div align=center>Currently there is no survey</div>";	
 }
 @mysqli_free_result($result);
+
+//--------------------------End of pager code-------------------------
 
 get_footer(); #defaults to theme footer or footer_inc.php
 ?>
